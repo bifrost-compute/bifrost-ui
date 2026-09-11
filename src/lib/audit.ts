@@ -2,7 +2,7 @@ import type { Identity } from './api'
 
 /**
  * One audit event from `GET /api/v1/audit` (api-v1.md §5.9). UI-ahead: not
- * yet in the published `@brandonrc/bifrost-client`, so this shape is
+ * yet in the published `@bifrost-compute/bifrost-client`, so this shape is
  * hand-written here; delete it and import from the client once published.
  * Option fields are null-present on the wire (`subject`, `action`,
  * `cluster`, `method`, `path`, `reason`, `required`, `granted_roles`).

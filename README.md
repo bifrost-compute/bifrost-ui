@@ -1,6 +1,6 @@
 # Bifrost UI
 
-Management console for [Bifrost](https://github.com/brandonrc/bifrost), the
+Management console for [Bifrost](https://github.com/bifrost-compute/bifrost), the
 Go control plane for Ray and Dask clusters — a self-hosted, FOSS replacement
 for the Anyscale console. The UI is backend-agnostic: every API shape comes
 from the generated OpenAPI client, never hand-written.
@@ -18,7 +18,7 @@ list and Registry render the typed table UI now and gracefully show
 This app does **not** hand-write API shapes or point a codegen tool at a
 running server. It depends on a TypeScript client generated from the frozen
 Bifrost API contract (see
-[bifrost-api](https://github.com/brandonrc/bifrost-api)), published to the
+[bifrost-api](https://github.com/bifrost-compute/bifrost-api)), published to the
 GitHub Packages npm registry whenever the API changes.
 `src/lib/api.ts` re-exports those types.
 
@@ -65,7 +65,7 @@ npm run dev        # http://localhost:5173
 | `npm run lint`    | ESLint (flat config)                                                   |
 
 API types are not generated here — they come from the published
-`@brandonrc/bifrost-client` package (see above).
+`@bifrost-compute/bifrost-client` package (see above).
 
 ## Auth (provider-driven: SSO redirect or local login)
 

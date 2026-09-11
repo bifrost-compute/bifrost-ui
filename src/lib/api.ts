@@ -1,7 +1,7 @@
 /**
  * Typed API client for the Bifrost control plane.
  *
- * API types come from `@brandonrc/bifrost-client` — generated from the
+ * API types come from `@bifrost-compute/bifrost-client` — generated from the
  * frozen Bifrost `openapi.json` (the source of truth, vendored from
  * bifrost-api) and published to GitHub Packages.
  * We never hand-write shapes the backend owns; re-exports below keep call
@@ -27,7 +27,7 @@ import {
   ServicesApi,
   SystemApi,
   UsageApi,
-} from '@brandonrc/bifrost-client'
+} from '@bifrost-compute/bifrost-client'
 import type {
   AllocationSpec,
   ClusterSpec as GeneratedClusterSpec,
@@ -48,7 +48,7 @@ import type {
   UsageReport,
   VersionInfo,
   WorkerGroup,
-} from '@brandonrc/bifrost-client'
+} from '@bifrost-compute/bifrost-client'
 
 import type { AuditListResponse } from './audit'
 import { getCurrentToken, notifySessionExpired } from './auth-token'
@@ -81,7 +81,7 @@ export type { Engine } from './engine'
 /**
  * `engine` is UI-ahead: the running control plane (multi-engine build) returns
  * it per cluster and accepts it on create, but it is not in the published
- * `@brandonrc/bifrost-client` yet — the generated `ClusterViewFromJSON` /
+ * `@bifrost-compute/bifrost-client` yet — the generated `ClusterViewFromJSON` /
  * `ClusterSpecToJSON` silently drop it. So we extend the generated shapes here
  * and thread `engine` through the hand-mapped cluster reads/writes below.
  * Delete these extensions once the client is republished with `engine`.
@@ -102,7 +102,7 @@ export type Role = 'viewer' | 'developer' | 'operator' | 'admin'
 /**
  * `GET /api/v1/identity` exists backend-side now (access.rs: "who am I" for
  * any authenticated caller, plus the dev identity when auth is disabled) but
- * is not yet in the published `@brandonrc/bifrost-client` — hand-written here
+ * is not yet in the published `@bifrost-compute/bifrost-client` — hand-written here
  * until it is. Note `roles` is a list (a caller can hold several) — matching
  * the backend's `Vec<Role>`.
  */
@@ -217,7 +217,7 @@ export interface RegistryCluster {
 /**
  * UI-ahead: per-cluster observability (`GET /api/v1/clusters/{id}/nodes` and
  * `.../jobs`, the backend) landed backend-side but is not yet in the
- * published `@brandonrc/bifrost-client` — hand-fetched like identity/audit
+ * published `@bifrost-compute/bifrost-client` — hand-fetched like identity/audit
  * below; migrate to the generated `ClustersApi` once the client is
  * republished. Both proxy the cluster's live Ray state, so a reachable
  * control plane fronting an unreachable cluster answers 503 (`isUnavailable`);
@@ -335,7 +335,7 @@ export interface ClusterLogsView {
 
 /**
  * UI-ahead: local-auth endpoints (api-v1.md §5.15, ADR-0011) are not yet in
- * the published `@brandonrc/bifrost-client` — hand-written here like
+ * the published `@bifrost-compute/bifrost-client` — hand-written here like
  * `Identity`/`RegistryCluster`; delete and import from the client once
  * published. `identity.roles` comes from the local user's role column.
  */
@@ -715,7 +715,7 @@ export const api = {
   registryClusters: () => request<RegistryCluster[]>('/api/v1/registry/clusters'),
   /**
    * UI-ahead: `GET /api/v1/audit` landed backend-side (api-v1.md §5.9,
-   * 2026-08-16) but is not yet in the published `@brandonrc/bifrost-client`
+   * 2026-08-16) but is not yet in the published `@bifrost-compute/bifrost-client`
    * — hand-fetched like identity/registry above, with the query string
    * built by `buildAuditQuery` in `./audit`. Migrate to the generated
    * AuditApi once the client is republished. 404 on older backends → the
@@ -730,7 +730,7 @@ export const api = {
     }),
   /**
    * UI-ahead: local auth (api-v1.md §5.15, ADR-0011) is not yet in the
-   * published `@brandonrc/bifrost-client` — hand-fetched like identity/audit
+   * published `@bifrost-compute/bifrost-client` — hand-fetched like identity/audit
    * above; migrate to the generated client once published. `providers` is
    * public and always mounted on auth-enabled backends (404 on older ones
    * → the login page falls back to env-based discovery). `login` is public;

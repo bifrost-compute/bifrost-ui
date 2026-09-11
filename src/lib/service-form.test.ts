@@ -28,13 +28,13 @@ describe('canManageServices', () => {
 
 describe('serviceViewState', () => {
   it('maps known lifecycle states through like clusters', () => {
-    expect(serviceViewState({ name: 's', state: 'running' })).toBe('running')
-    expect(serviceViewState({ name: 's', state: 'updating' })).toBe('updating')
+    expect(serviceViewState({ name: 's', project: 'p', state: 'running' })).toBe('running')
+    expect(serviceViewState({ name: 's', project: 'p', state: 'updating' })).toBe('updating')
   })
 
   it('falls back to pending for an unrecognized state', () => {
-    expect(serviceViewState({ name: 's', state: 'mystery' })).toBe('pending')
-    expect(serviceViewState({ name: 's', state: '' })).toBe('pending')
+    expect(serviceViewState({ name: 's', project: 'p', state: 'mystery' })).toBe('pending')
+    expect(serviceViewState({ name: 's', project: 'p', state: '' })).toBe('pending')
   })
 })
 
