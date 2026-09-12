@@ -1,6 +1,7 @@
 {
   "name": "bifrost-ui",
   "private": true,
+  "license": "Apache-2.0",
   "version": "0.0.1",
   "description": "Management console for Bifrost, the Go control plane for Ray and Dask clusters",
   "type": "module",
