@@ -1,15 +1,15 @@
 # CI image: packages a PRE-BUILT dist/ (produced on the host/runner with
-# `npm run build`, which needs NODE_AUTH_TOKEN for @brandonrc/bifrost-client
+# `npm run build`, which needs NODE_AUTH_TOKEN for @bifrost-compute/bifrost-client
 # from GitHub Packages) into nginx. Keeping the npm build outside docker means
 # the image build needs no registry auth and no vendored client — contrast
 # with ./Dockerfile, the compose flow that vendors the client into the image.
 #
 # Usage:
 #   npm ci && npm run build
-#   docker build -f Dockerfile.ci -t ghcr.io/brandonrc/bifrost-ui:latest .
+#   docker build -f Dockerfile.ci -t ghcr.io/bifrost-compute/bifrost-ui:latest .
 # nginx-unprivileged, matching ./Dockerfile — and this is the copy that
 # actually ships. build.yml builds THIS file on every push to main and pushes
-# ghcr.io/brandonrc/bifrost-ui:latest, which is what bifrost-pack's chart
+# ghcr.io/bifrost-compute/bifrost-ui:latest, which is what bifrost-pack's chart
 # deploys by default with pullPolicy: Always.
 #
 # Stock nginx cannot run under that chart: it starts as root and its entrypoint

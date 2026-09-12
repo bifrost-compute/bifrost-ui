@@ -4,7 +4,7 @@
 # control-plane API reverse-proxied (see nginx.conf).
 #
 # The typed API client comes from GitHub Packages, which is what package.json
-# and package-lock.json already declare (@brandonrc/bifrost-client). This
+# and package-lock.json already declare (@bifrost-compute/bifrost-client). This
 # replaces an older vendored-copy dance that installed the client from
 # ./vendor/bifrost-client to avoid needing npm auth; that path is gone because
 # the package it named no longer exists, the directory it read was never
@@ -27,7 +27,7 @@ FROM node@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa3
 WORKDIR /app
 
 # Manifests first so a source-only change reuses the install layer. .npmrc is
-# needed here too: it is what points @brandonrc at GitHub Packages.
+# needed here too: it is what points @bifrost-compute at GitHub Packages.
 COPY .npmrc package.json package-lock.json ./
 
 # `npm ci` rather than `npm install`: it installs exactly the lockfile and

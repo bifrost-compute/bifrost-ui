@@ -13,10 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          # @brandonrc/bifrost-client comes from GitHub Packages; the .npmrc
+          # @bifrost-compute/bifrost-client comes from GitHub Packages; the .npmrc
           # reads NODE_AUTH_TOKEN. GITHUB_TOKEN has read:packages here.
           registry-url: "https://npm.pkg.github.com"
-          scope: "@brandonrc"
+          scope: "@bifrost-compute"
       - name: Install
         run: npm install --no-audit --no-fund
         env:
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://npm.pkg.github.com"
-          scope: "@brandonrc"
+          scope: "@bifrost-compute"
       - name: Install
         run: npm install --no-audit --no-fund
         env:

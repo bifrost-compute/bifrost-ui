@@ -1,7 +1,7 @@
 name: Build
 
 # Build the dashboard and publish ghcr.io/<owner>/bifrost-ui. The SPA is built
-# on the runner (npm needs GitHub Packages auth for @brandonrc/bifrost-client),
+# on the runner (npm needs GitHub Packages auth for @bifrost-compute/bifrost-client),
 # then packaged into nginx via Dockerfile.ci — the docker build itself needs
 # no registry auth. Single-arch amd64.
 on:
@@ -29,12 +29,12 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # @brandonrc/bifrost-client is pulled from GitHub Packages (see
+        # @bifrost-compute/bifrost-client is pulled from GitHub Packages (see
         # .npmrc). GITHUB_TOKEN usually cannot read a package published from
         # a DIFFERENT repo (bifrost-api) unless this repo has been granted
         # access on the package's settings page. If `npm ci` fails with
         # 401/403 from npm.pkg.github.com, either grant this repo access at
-        # https://github.com/users/brandonrc/packages/npm/bifrost-client/settings
+        # https://github.com/orgs/bifrost-compute/packages/npm/bifrost-client/settings
         # or create a classic PAT with read:packages and save it as the
         # BIFROST_CLIENT_READ_TOKEN secret — it takes precedence automatically.
         env:

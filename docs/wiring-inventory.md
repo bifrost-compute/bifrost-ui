@@ -21,7 +21,7 @@ clusters by default; Overview job tiles + activity wired to `GET /api/v1/jobs`).
 
 - Cluster reads (`GET /clusters`, `GET /clusters/{id}`) and the create POST are
   **hand-mapped in `src/lib/api.ts`** so the UI-ahead `engine` field survives
-  (the generated `@brandonrc/bifrost-client` serializers drop unknown fields).
+  (the generated `@bifrost-compute/bifrost-client` serializers drop unknown fields).
   `engine` normalizes to `ray` when absent (backend default).
 - Ray: head + workers, `ray_version`, ports 10001/8265; **has** Jobs API and
   Serve services. Dask: scheduler + workers, image-pinned, ports 8786/8787;
