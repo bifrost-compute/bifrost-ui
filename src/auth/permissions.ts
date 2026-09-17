@@ -1,6 +1,7 @@
 import { useAuth } from './auth-context'
 import { canViewAudit } from '@/lib/audit'
 import { canManageClusters } from '@/lib/clusters'
+import { canSubmitJobs } from '@/lib/jobs'
 import { canWritePools } from '@/lib/pools'
 import { canEditPolicy } from '@/lib/settings'
 import { canManageServices } from '@/lib/services'
@@ -36,6 +37,12 @@ export function useCanManageClusters(): boolean {
 export function useCanManageServices(): boolean {
   const { identity } = useAuth()
   return canManageServices(identity)
+}
+
+/** Job submission (#5): Developer or Admin, like services. Fails closed. */
+export function useCanSubmitJobs(): boolean {
+  const { identity } = useAuth()
+  return canSubmitJobs(identity)
 }
 
 /**

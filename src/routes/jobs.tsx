@@ -1,8 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
+import { ExternalLink, Plus, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 
+import { useCanSubmitJobs } from '@/auth/permissions'
 import { ApiErrorState, EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -12,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { api } from '@/lib/api'
+import { api, BifrostApiError } from '@/lib/api'
+import type { RayJobView } from '@/lib/api'
+import { forgetSubmittedJob, isTerminalJob, rememberSubmittedJob, submittedJobIds } from '@/lib/jobs'
 import { cn } from '@/lib/utils'
 
 /** Ray job status → badge classes (Nebari-tinted semantic colors). */
@@ -45,12 +52,128 @@ function fmtWhen(unixSecs: number): string {
   return new Date(unixSecs * 1000).toLocaleString()
 }
 
+/** One ephemeral job submitted from this console, polled until it settles. */
+function SubmittedJobRow({ id, onForget }: { id: string; onForget: () => void }) {
+  const query = useQuery({
+    queryKey: ['job', id],
+    queryFn: () => api.job(id),
+    retry: false,
+    refetchInterval: (q) => {
+      const data = q.state.data as RayJobView | undefined
+      return data && isTerminalJob(data.status) ? false : 5_000
+    },
+  })
+  const job = query.data
+  const gone = query.error instanceof BifrostApiError && query.error.isNotImplemented
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-xs">{id}</TableCell>
+      <TableCell>
+        {job ? (
+          <Badge className={cn('font-medium', statusClasses(job.status || 'PENDING'))}>
+            {job.status || (job.deployment_status || 'submitted')}
+          </Badge>
+        ) : gone ? (
+          <Badge variant="muted">purged</Badge>
+        ) : query.isError ? (
+          <Badge variant="destructive">unreachable</Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">…</span>
+        )}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground">{job?.project ?? ''}</TableCell>
+      <TableCell className="text-xs">
+        {job?.cluster ? <span className="font-mono">{job.cluster}</span> : <span className="text-muted-foreground">—</span>}
+      </TableCell>
+      <TableCell className="max-w-72 truncate text-xs text-muted-foreground" title={job?.message ?? undefined}>
+        {job?.message ?? (job && !job.deployment_status ? 'waiting for the provisioner' : '')}
+      </TableCell>
+      <TableCell>
+        <div className="flex justify-end gap-1">
+          {job?.gateway_url ? (
+            <Button asChild size="sm" variant="ghost" title="Ray dashboard through the gateway">
+              <a href={job.gateway_url} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-4" aria-hidden />
+                <span className="sr-only">Open dashboard</span>
+              </a>
+            </Button>
+          ) : null}
+          <Button size="sm" variant="ghost" onClick={onForget} title="Stop following this job here">
+            <X className="size-4" aria-hidden />
+            <span className="sr-only">Dismiss {id}</span>
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+/**
+ * Jobs submitted from this console (#5): `GET /jobs` is the finished
+ * history, so a just-submitted ephemeral job is followed here by id until
+ * it settles. Ids live in this browser only — a convenience, not state.
+ */
+function SubmittedJobsCard() {
+  const [params, setParams] = useSearchParams()
+  const [ids, setIds] = useState<string[]>(() => submittedJobIds())
+  const submitted = params.get('submitted')
+  useEffect(() => {
+    if (!submitted) return
+    rememberSubmittedJob(submitted)
+    setIds(submittedJobIds())
+    const next = new URLSearchParams(params)
+    next.delete('submitted')
+    setParams(next, { replace: true })
+  }, [submitted, params, setParams])
+  if (ids.length === 0) return null
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardTitle>
+          In flight
+          <span className="ml-2 text-sm font-normal text-muted-foreground">
+            jobs submitted from this console, followed until they finish
+          </span>
+        </CardTitle>
+        {submitted ? <Badge variant="success">submitted {submitted}</Badge> : null}
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Job</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Project</TableHead>
+              <TableHead>Cluster</TableHead>
+              <TableHead>Message</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ids.map((id) => (
+              <SubmittedJobRow
+                key={id}
+                id={id}
+                onForget={() => {
+                  forgetSubmittedJob(id)
+                  setIds(submittedJobIds())
+                }}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
 /**
  * Global job history (spec §5.5). The persistent, cross-cluster table is
  * backed by `GET /api/v1/jobs` (Phase 3 Postgres); records outlive the
  * clusters that ran them. Submission stays CLI-first (D4).
  */
 export function JobsPage() {
+  const canSubmit = useCanSubmitJobs()
   const query = useQuery({
     queryKey: ['jobs'],
     queryFn: api.jobs,
@@ -63,9 +186,19 @@ export function JobsPage() {
       <PageHeader
         title="Jobs"
         description="Cross-cluster, persistent job history — the direct answer to “Ray dashboards forget everything.”"
+        actions={
+          canSubmit ? (
+            <Button asChild size="sm">
+              <Link to="/jobs/new">
+                <Plus /> Submit job
+              </Link>
+            </Button>
+          ) : undefined
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <SubmittedJobsCard />
         <Card>
           <CardHeader>
             <CardTitle>Job history</CardTitle>
@@ -78,7 +211,7 @@ export function JobsPage() {
             ) : query.data.length === 0 ? (
               <EmptyState
                 title="No jobs yet"
-                description="Submit a job through Bifrost's gateway (see the panel on the right) and it will appear here — and stay here after its cluster is gone."
+                description="Finished jobs land here and stay after their cluster is gone. Submit one with the button above, or through the Ray Jobs CLI against the gateway (right)."
               />
             ) : (
               <Table>
@@ -119,14 +252,13 @@ export function JobsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Submitting jobs — CLI-first (D4)</CardTitle>
+            <CardTitle>Submitting from the CLI</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              There is deliberately no submit form in v1. Submit through the
-              Ray Jobs CLI against Bifrost's gateway; the command helper on
-              this page will generate the exact command plus auth headers once
-              clusters are registered.
+              The form above creates an ephemeral cluster per job with a governed
+              environment or an image. To run against a cluster you already have,
+              submit through the Ray Jobs CLI against Bifrost's gateway:
             </p>
             <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
 {`ray job submit \\

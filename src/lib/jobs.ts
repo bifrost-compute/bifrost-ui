@@ -1,4 +1,5 @@
-import type { JobView } from './api'
+import type { Identity, JobView } from './api'
+import { holdsRole } from './identity'
 
 /**
  * Job-history helpers for the Overview stat tiles (spec §5.1). Pure and
@@ -7,6 +8,59 @@ import type { JobView } from './api'
  * hardcoded values. Ray statuses: PENDING | RUNNING | SUCCEEDED | FAILED |
  * STOPPED (comparison is case-insensitive to match the wire verbatim).
  */
+
+/**
+ * Submitting a job needs Write on the job target: Developer or Admin, held
+ * globally or in any project (the backend's job rule, #5 — the same shape
+ * as services, "running code"). Reads are Viewer+ and never gated. Fails
+ * closed on null identity.
+ */
+export function canSubmitJobs(identity: Identity | null): boolean {
+  return holdsRole(identity, ['developer', 'admin'])
+}
+
+// --- Jobs submitted from this console ------------------------------------------------
+
+/**
+ * `GET /api/v1/jobs` is the persistent history: a job appears there once it
+ * has finished. An ephemeral job that was just submitted is reachable only
+ * by id, so the console remembers the ids it submitted (per browser, a
+ * convenience — never platform state) and polls each until it settles.
+ */
+const SUBMITTED_KEY = 'bifrost.submittedJobs'
+const SUBMITTED_MAX = 20
+
+export function submittedJobIds(): string[] {
+  try {
+    const raw = window.localStorage.getItem(SUBMITTED_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writeSubmitted(ids: string[]): void {
+  try {
+    window.localStorage.setItem(SUBMITTED_KEY, JSON.stringify(ids.slice(0, SUBMITTED_MAX)))
+  } catch {
+    // Storage blocked or full: the banner still shows this session's id via the URL.
+  }
+}
+
+export function rememberSubmittedJob(id: string): void {
+  writeSubmitted([id, ...submittedJobIds().filter((v) => v !== id)])
+}
+
+export function forgetSubmittedJob(id: string): void {
+  writeSubmitted(submittedJobIds().filter((v) => v !== id))
+}
+
+/** Terminal Ray statuses: the poll can stop. */
+export function isTerminalJob(status: string): boolean {
+  const s = status.toUpperCase()
+  return s === 'SUCCEEDED' || s === 'FAILED' || s === 'STOPPED'
+}
 
 /** In-flight jobs — not yet terminal. */
 export function isActiveJob(status: string): boolean {

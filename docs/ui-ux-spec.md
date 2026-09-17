@@ -116,6 +116,8 @@ The documented OSS pain points this UI must fix on day one: **ephemerality** (da
 /jobs                          Global job history (persistent, cross-cluster)
   /:jobId                      Job detail + logs
 /images                        Approved image catalog (Viewer+) — pick, and inspect without pulling
+/environments                  Governed environments (Viewer+): base image + pinned packages + env vars, lifecycle, scan verdict
+/jobs/new                      Submit-job form (Developer/Admin): environment or image + runtime_env
 /pools                         Capacity pools (Viewer+; mutations Admin-only)
   /new                         New-pool form (Admin)
   /:name                       Pool detail — spec, allocations, live usage

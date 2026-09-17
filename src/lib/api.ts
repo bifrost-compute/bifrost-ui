@@ -54,7 +54,9 @@ import type { AuditListResponse } from './audit'
 import { getCurrentToken, notifySessionExpired } from './auth-token'
 import { isClusterState, type ClusterState } from './cluster-state'
 import { normalizeEngine, type Engine } from './engine'
+import type { EnvironmentSpec } from './environments'
 import type { AdmissionRule, ImageEntry, ImageInspect } from './images'
+import type { SubmitJobBody } from './job-form'
 
 // Canonical API shapes, re-exported from the generated client.
 export type {
@@ -79,6 +81,7 @@ export type {
 
 export type { Engine } from './engine'
 export type { AdmissionRule, ImageEntry, ImageInspect } from './images'
+export type { EnvironmentSpec } from './environments'
 
 /**
  * `engine` is UI-ahead: the running control plane (multi-engine build) returns
@@ -198,6 +201,8 @@ export interface PolicyView {
   images?: ImageEntry[]
   /** project (or `"*"`) → admission rule (#7/#10); empty when none. */
   admission?: Record<string, AdmissionRule>
+  /** The governed-environment catalog (#52); empty when none. */
+  environments?: EnvironmentSpec[]
   source: 'file' | 'store' | 'none'
   editable: boolean
 }
@@ -209,6 +214,34 @@ export interface UpdatePolicy {
   images?: ImageEntry[]
   /** Present replaces the whole admission map (`{}` clears it). */
   admission?: Record<string, AdmissionRule>
+  /**
+   * Present replaces the whole environment catalog (`[]` clears it); the
+   * server enforces lifecycle transitions and stamps publishes (#57).
+   */
+  environments?: EnvironmentSpec[]
+}
+
+/**
+ * An ephemeral Ray job (`RayJobView`, #5): what `POST /api/v1/jobs` answers
+ * with and what `GET /api/v1/jobs/{id}` reports while the job lives. Not
+ * the persistent history row (`JobView`) — a job appears there once it
+ * has finished. Raw snake_case wire shape.
+ */
+export interface RayJobView {
+  id: string
+  project: string
+  owner?: string | null
+  /** PENDING | RUNNING | SUCCEEDED | FAILED | STOPPED; '' until Ray reports one. */
+  status: string
+  /** KubeRay: Initializing | Running | Complete | Failed | Suspended | …; '' until observed. */
+  deployment_status: string
+  cluster?: string | null
+  message?: string | null
+  queue?: string | null
+  gateway_url?: string | null
+  submitted_at: number
+  started_at?: number | null
+  finished_at?: number | null
 }
 
 /**
@@ -804,6 +837,25 @@ export const api = {
    * backend that predates the endpoint; 502 → the registry could not be
    * read (the message names the registry's answer).
    */
+  /**
+   * UI-ahead: governed environments (#52–#58). `GET /environments` is the
+   * catalog filtered to the caller's projects, every status included (a
+   * job may only name a published one; the form filters).
+   */
+  environments: () => request<EnvironmentSpec[]>('/api/v1/environments'),
+  /**
+   * UI-ahead: `POST /api/v1/jobs` (#5) with `environment` (#55), hand-fetched
+   * because the published client predates the field. 400 bodies (admission,
+   * runtime_env governance, environment refusals) surface verbatim.
+   */
+  submitJob: (body: SubmitJobBody) =>
+    request<RayJobView>('/api/v1/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  /** One ephemeral job by id; 404 once purged (or never existed). */
+  job: (id: string) => request<RayJobView>(`/api/v1/jobs/${encodeURIComponent(id)}`),
   images: () => request<ImageEntry[]>('/api/v1/images'),
   inspectImage: (name: string) =>
     request<ImageInspect>(

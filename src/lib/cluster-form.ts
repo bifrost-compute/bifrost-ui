@@ -101,7 +101,14 @@ export function validateClusterForm(state: ClusterFormState): string[] {
   if (state.workerGroups.length === 0) {
     errors.push('At least one worker group is required.')
   }
-  state.workerGroups.forEach((group, i) => {
+  errors.push(...validateWorkerGroupRows(state.workerGroups))
+  return errors
+}
+
+/** Per-row worker-group checks, shared with the job form (`/jobs/new`). */
+export function validateWorkerGroupRows(groups: WorkerGroupRow[]): string[] {
+  const errors: string[] = []
+  groups.forEach((group, i) => {
     const label = `Worker group ${i + 1}`
     if (group.name.trim() === '') errors.push(`${label}: name is required.`)
     if (!isValidQuantity(group.cpu)) {

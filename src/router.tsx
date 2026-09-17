@@ -9,7 +9,9 @@ import { AuthCallbackPage } from '@/routes/auth-callback'
 import { ClusterDetailPage } from '@/routes/cluster-detail'
 import { ClusterNewPage } from '@/routes/cluster-new'
 import { ClustersPage } from '@/routes/clusters'
+import { EnvironmentsPage } from '@/routes/environments'
 import { ImagesPage } from '@/routes/images'
+import { JobNewPage } from '@/routes/job-new'
 import { JobsPage } from '@/routes/jobs'
 import { LoginPage } from '@/routes/login'
 import { OverviewPage } from '@/routes/overview'
@@ -56,6 +58,8 @@ export const router = createBrowserRouter([
       { path: '/pools/:name', element: <PoolDetailPage /> },
       { path: '/usage', element: <UsagePage /> },
       { path: '/jobs', element: <JobsPage /> },
+      { path: '/jobs/new', element: <JobNewPage /> },
+      { path: '/environments', element: <EnvironmentsPage /> },
       { path: '/images', element: <ImagesPage /> },
       { path: '/registry', element: <RegistryPage /> },
       { path: '/audit', element: <AuditPage /> },
