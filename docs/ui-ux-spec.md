@@ -115,6 +115,7 @@ The documented OSS pain points this UI must fix on day one: **ephemerality** (da
     /config                    Spec editor (YAML/form), registry entry (admin)
 /jobs                          Global job history (persistent, cross-cluster)
   /:jobId                      Job detail + logs
+/images                        Approved image catalog (Viewer+) — pick, and inspect without pulling
 /pools                         Capacity pools (Viewer+; mutations Admin-only)
   /new                         New-pool form (Admin)
   /:name                       Pool detail — spec, allocations, live usage

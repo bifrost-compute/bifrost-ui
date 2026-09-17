@@ -54,6 +54,7 @@ import type { AuditListResponse } from './audit'
 import { getCurrentToken, notifySessionExpired } from './auth-token'
 import { isClusterState, type ClusterState } from './cluster-state'
 import { normalizeEngine, type Engine } from './engine'
+import type { AdmissionRule, ImageEntry, ImageInspect } from './images'
 
 // Canonical API shapes, re-exported from the generated client.
 export type {
@@ -77,6 +78,7 @@ export type {
 }
 
 export type { Engine } from './engine'
+export type { AdmissionRule, ImageEntry, ImageInspect } from './images'
 
 /**
  * `engine` is UI-ahead: the running control plane (multi-engine build) returns
@@ -189,6 +191,13 @@ export interface PolicyView {
   prices: Record<string, number> | null
   /** project → (resource → limit). Empty when no quotas are configured. */
   quotas: Record<string, Record<string, number>>
+  /**
+   * The image catalog (#10); empty when none is configured. Absent on a
+   * control plane older than bifrost@009abf3.
+   */
+  images?: ImageEntry[]
+  /** project (or `"*"`) → admission rule (#7/#10); empty when none. */
+  admission?: Record<string, AdmissionRule>
   source: 'file' | 'store' | 'none'
   editable: boolean
 }
@@ -196,6 +205,10 @@ export interface PolicyView {
 export interface UpdatePolicy {
   prices?: Record<string, number> | null
   quotas?: Record<string, Record<string, number>>
+  /** Present replaces the whole image catalog (`[]` clears it). */
+  images?: ImageEntry[]
+  /** Present replaces the whole admission map (`{}` clears it). */
+  admission?: Record<string, AdmissionRule>
 }
 
 /**
@@ -783,4 +796,17 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }),
+  /**
+   * UI-ahead: the image catalog (#10, bifrost@009abf3) — `GET /images` is
+   * the catalog filtered to the caller's projects (any authenticated role);
+   * `inspect` reads the image's manifest, config and layer history straight
+   * from its registry. 404 → no such entry / not open to the caller, or a
+   * backend that predates the endpoint; 502 → the registry could not be
+   * read (the message names the registry's answer).
+   */
+  images: () => request<ImageEntry[]>('/api/v1/images'),
+  inspectImage: (name: string) =>
+    request<ImageInspect>(
+      `/api/v1/images/${encodeURIComponent(name)}/inspect`,
+    ),
 }

@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import type { PolicyView } from '@/lib/api'
+import { ImagesCard } from '@/routes/settings-images'
 import type { PairRow } from '@/lib/pools'
 import {
   formatQuotaLimits,
@@ -521,7 +522,7 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="Governance policy: price sheet and project quotas. (Admin)"
+        description="Governance policy: price sheet, project quotas and the approved-image catalog. (Admin)"
       />
       {query.isPending ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -531,6 +532,7 @@ export function SettingsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <PriceSheetCard policy={query.data} />
           <QuotasCard policy={query.data} />
+          <ImagesCard policy={query.data} />
         </div>
       )}
     </>

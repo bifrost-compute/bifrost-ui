@@ -1,6 +1,7 @@
 import {
   Boxes,
   ChartColumn,
+  Container,
   LayoutDashboard,
   Layers,
   ListChecks,
@@ -41,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/pools', label: 'Pools', icon: Layers },
   { to: '/usage', label: 'Usage', icon: ChartColumn },
   { to: '/jobs', label: 'Jobs', icon: ListChecks },
+  { to: '/images', label: 'Images', icon: Container },
   { to: '/registry', label: 'Registry', icon: SquareTerminal },
   { to: '/audit', label: 'Audit', icon: ScrollText, requires: 'audit' },
   { to: '/access', label: 'Access', icon: Users },

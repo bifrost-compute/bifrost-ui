@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
@@ -19,6 +19,8 @@ import {
   validateClusterForm,
 } from '@/lib/cluster-form'
 import { defaultImageFor, headRoleLabel, type Engine } from '@/lib/engine'
+import type { ImageEntry } from '@/lib/images'
+import { catalogEntryForImage, catalogOptionsFor, pinnedRef } from '@/lib/images'
 import { cn } from '@/lib/utils'
 
 /**
@@ -38,6 +40,13 @@ export function ClusterNewPage() {
   const canManage = useCanManageClusters()
   const [state, setState] = useState<ClusterFormState>(emptyClusterForm())
   const [errors, setErrors] = useState<string[]>([])
+  // The approved-image catalog (#10), filtered server-side to the caller's
+  // projects. Optional: a backend without it (404) or an empty catalog
+  // leaves the free-text image field exactly as before.
+  const catalog = useQuery({ queryKey: ['images'], queryFn: api.images, retry: false })
+  const catalogEntries: ImageEntry[] = catalog.data ?? []
+  const catalogOptions = catalogOptionsFor(catalogEntries, state.engine)
+  const selectedEntry = catalogEntryForImage(catalogEntries, state.image)
 
   const mutation = useMutation({
     mutationFn: () => api.createCluster(buildCreateCluster(state)),
@@ -66,6 +75,18 @@ export function ClusterNewPage() {
           ? defaultImageFor(engine)
           : prev.image,
     }))
+
+  // Picking a catalog entry writes the reference the spec should carry
+  // (pinned to the digest when the entry has one) and the Ray version the
+  // catalog states for it; "custom" leaves the typed image alone.
+  const pickCatalogImage = (name: string) => {
+    const entry = catalogOptions.find((e) => e.name === name)
+    if (!entry) return
+    patch({
+      image: pinnedRef(entry),
+      ...(entry.ray_version ? { rayVersion: entry.ray_version } : {}),
+    })
+  }
 
   const patchWorkerGroup = (
     index: number,
@@ -323,6 +344,35 @@ export function ClusterNewPage() {
             <CardTitle className="text-sm">Runtime</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
+            {catalogOptions.length > 0 ? (
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-sm text-muted-foreground">
+                  Approved image
+                </span>
+                <select
+                  aria-label="Approved image"
+                  value={selectedEntry?.name ?? 'custom'}
+                  onChange={(e) => pickCatalogImage(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="custom">Custom image (type a reference below)</option>
+                  {catalogOptions.map((entry) => (
+                    <option key={entry.name} value={entry.name}>
+                      {entry.name}
+                      {entry.ray_version ? ` · Ray ${entry.ray_version}` : ''}
+                      {entry.python_version ? ` · Python ${entry.python_version}` : ''}
+                      {' · '}
+                      {entry.ref}
+                    </option>
+                  ))}
+                </select>
+                <span className="block text-xs text-muted-foreground">
+                  {selectedEntry
+                    ? `Catalog entry ${selectedEntry.name}${selectedEntry.digest ? ', pinned to its digest' : ''}. ${selectedEntry.description ?? ''}`
+                    : 'Not a catalog image. Projects whose admission is catalog-only will refuse it.'}
+                </span>
+              </label>
+            ) : null}
             {state.engine === 'ray' ? (
               <label className="block space-y-1">
                 <span className="text-sm text-muted-foreground">
