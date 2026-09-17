@@ -56,6 +56,9 @@ describe('dockerfile view', () => {
     expect(dockerfileLine('COPY requirements.txt /tmp/ # buildkit')).toEqual({
       instruction: 'COPY', text: 'COPY requirements.txt /tmp/',
     })
+    expect(dockerfileLine('RUN /bin/sh -c pip install ray # buildkit')).toEqual({
+      instruction: 'RUN', text: 'RUN pip install ray',
+    })
     expect(dockerfileLine('|1 PY=3.11 /bin/sh -c echo hi')).toEqual({
       instruction: 'RUN', text: 'RUN |1 PY=3.11 /bin/sh -c echo hi',
     })

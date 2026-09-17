@@ -159,6 +159,9 @@ export function dockerfileLine(createdBy: string): { instruction: string; text: 
   } else if (text.startsWith('/bin/sh -c ')) {
     text = `RUN ${text.slice('/bin/sh -c '.length).trim()}`
   }
+  // BuildKit records a shell-form RUN as `RUN /bin/sh -c cmd`; the shell is
+  // implied in a Dockerfile, so the reconstruction drops it.
+  text = text.replace(/^RUN \/bin\/sh -c /, 'RUN ')
   const first = text.split(/\s+/, 1)[0]?.toUpperCase() ?? ''
   if (INSTRUCTIONS.has(first)) {
     return { instruction: first, text: `${first}${text.slice(first.length)}` }
