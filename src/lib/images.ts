@@ -77,6 +77,36 @@ export interface ImageInspect {
  * runtime-env governance knobs ride through untouched via the index
  * signature because `PUT {admission}` replaces the whole section.
  */
+/**
+ * Image source (#10): a registry repository administrators may browse
+ * live for catalog candidates. A pointer, never an approval — only a
+ * catalog entry makes a tag runnable.
+ */
+export interface ImageSource {
+  /** RFC 1123 label. */
+  name: string
+  description?: string | null
+  /** Registry host[:port] as image references name it (what the nodes pull from). */
+  registry: string
+  /** One repository to list; empty = the registry's whole catalog. */
+  repository?: string
+  /** Empty = every project. */
+  projects?: string[]
+}
+
+export interface ImageSourceRepository {
+  repository: string
+  tags: string[]
+  /** `registry/repository:tag` per tag, ready to become an `ImageEntry.ref`. */
+  refs: string[]
+}
+
+export interface ImageSourceTags {
+  name: string
+  registry: string
+  repositories: ImageSourceRepository[]
+}
+
 export interface AdmissionRule {
   allowed_images?: string[]
   max_workers?: number
@@ -333,4 +363,97 @@ export function withCatalogOnly(
   if (meaningful) next[project] = rule
   else delete next[project]
   return next
+}
+
+// --- Image sources (settings + add-image picker) -----------------------------------
+
+export interface SourceRefOption {
+  ref: string
+  repository: string
+  tag: string
+}
+
+/** Every reference a source currently offers, repository by repository, tags as listed. */
+export function sourceRefOptions(tags: ImageSourceTags | undefined): SourceRefOption[] {
+  if (!tags) return []
+  const out: SourceRefOption[] = []
+  for (const repo of tags.repositories) {
+    repo.refs.forEach((ref, i) => out.push({ ref, repository: repo.repository, tag: repo.tags[i] ?? '' }))
+  }
+  return out
+}
+
+/**
+ * A catalog name for a reference picked from a source: the last path
+ * component and the tag, lowered and reduced to an RFC 1123 label
+ * (`localhost:32000/jupyter-ray:2.56.0` → `jupyter-ray-2-56-0`).
+ */
+export function suggestImageName(ref: string): string {
+  const repo = imageRepository(ref)
+  const last = repo.split('/').filter((p) => p !== '').pop() ?? ''
+  const afterRepo = ref.slice(ref.lastIndexOf(last) + last.length)
+  const tag = afterRepo.startsWith(':') ? afterRepo.slice(1).split('@')[0] : ''
+  const raw = tag ? `${last}-${tag}` : last
+  const label = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return label.slice(0, 63).replace(/-+$/g, '')
+}
+
+export interface SourceFormState {
+  name: string
+  description: string
+  registry: string
+  repository: string
+  /** Comma-separated; empty = every project. */
+  projects: string
+}
+
+export function emptySourceForm(): SourceFormState {
+  return { name: '', description: '', registry: '', repository: '', projects: '' }
+}
+
+const LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
+const REPOSITORY_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/
+
+/** Client-side mirror of the backend's image-source validation. */
+export function validateSourceForm(state: SourceFormState, existing: ImageSource[]): string[] {
+  const errors: string[] = []
+  const name = state.name.trim()
+  if (name === '') errors.push('Name is required.')
+  else if (!LABEL_RE.test(name)) errors.push('Name must be an RFC 1123 label (lowercase letters, digits, hyphens).')
+  else if (existing.some((e) => e.name === name)) errors.push(`A source named "${name}" already exists.`)
+  const registry = state.registry.trim()
+  if (registry === '') errors.push('Registry is required.')
+  else if (/\s|\/|:\/\//.test(registry)) errors.push('Registry must be a host[:port], not a URL or a path.')
+  const repository = state.repository.trim()
+  if (repository !== '' && !REPOSITORY_RE.test(repository)) {
+    errors.push('Repository must be a lowercase OCI path such as ray/team.')
+  }
+  return errors
+}
+
+export function formToSource(state: SourceFormState): ImageSource {
+  const description = state.description.trim()
+  return {
+    name: state.name.trim(),
+    description: description === '' ? null : description,
+    registry: state.registry.trim(),
+    repository: state.repository.trim(),
+    projects: state.projects
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => p !== ''),
+  }
+}
+
+export function withSource(sources: ImageSource[], entry: ImageSource): ImageSource[] {
+  const index = sources.findIndex((e) => e.name === entry.name)
+  if (index < 0) return [...sources, entry]
+  return sources.map((e, i) => (i === index ? entry : e))
+}
+
+export function withoutSource(sources: ImageSource[], name: string): ImageSource[] {
+  return sources.filter((e) => e.name !== name)
 }

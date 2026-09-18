@@ -55,7 +55,7 @@ import { getCurrentToken, notifySessionExpired } from './auth-token'
 import { isClusterState, type ClusterState } from './cluster-state'
 import { normalizeEngine, type Engine } from './engine'
 import type { EnvironmentSpec } from './environments'
-import type { AdmissionRule, ImageEntry, ImageInspect } from './images'
+import type { AdmissionRule, ImageEntry, ImageInspect, ImageSource, ImageSourceTags } from './images'
 import type { SubmitJobBody } from './job-form'
 
 // Canonical API shapes, re-exported from the generated client.
@@ -80,7 +80,7 @@ export type {
 }
 
 export type { Engine } from './engine'
-export type { AdmissionRule, ImageEntry, ImageInspect } from './images'
+export type { AdmissionRule, ImageEntry, ImageInspect, ImageSource, ImageSourceTags } from './images'
 export type { EnvironmentSpec } from './environments'
 
 /**
@@ -201,6 +201,8 @@ export interface PolicyView {
   images?: ImageEntry[]
   /** project (or `"*"`) → admission rule (#7/#10); empty when none. */
   admission?: Record<string, AdmissionRule>
+  /** Registry repositories the console may browse for catalog candidates (#10). */
+  image_sources?: ImageSource[]
   /** The governed-environment catalog (#52); empty when none. */
   environments?: EnvironmentSpec[]
   source: 'file' | 'store' | 'none'
@@ -214,6 +216,8 @@ export interface UpdatePolicy {
   images?: ImageEntry[]
   /** Present replaces the whole admission map (`{}` clears it). */
   admission?: Record<string, AdmissionRule>
+  /** Present replaces the whole image-source list (`[]` clears it). */
+  image_sources?: ImageSource[]
   /**
    * Present replaces the whole environment catalog (`[]` clears it); the
    * server enforces lifecycle transitions and stamps publishes (#57).
@@ -857,6 +861,10 @@ export const api = {
   /** One ephemeral job by id; 404 once purged (or never existed). */
   job: (id: string) => request<RayJobView>(`/api/v1/jobs/${encodeURIComponent(id)}`),
   images: () => request<ImageEntry[]>('/api/v1/images'),
+  /** Image sources (#10): the registries the caller may browse, and one source's live tags. */
+  imageSources: () => request<ImageSource[]>('/api/v1/images/sources'),
+  imageSourceTags: (name: string) =>
+    request<ImageSourceTags>(`/api/v1/images/sources/${encodeURIComponent(name)}/tags`),
   inspectImage: (name: string) =>
     request<ImageInspect>(
       `/api/v1/images/${encodeURIComponent(name)}/inspect`,

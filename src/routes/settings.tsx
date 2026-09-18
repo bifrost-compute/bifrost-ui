@@ -29,7 +29,7 @@ import {
 import { api } from '@/lib/api'
 import type { PolicyView } from '@/lib/api'
 import { EnvironmentsCard } from '@/routes/settings-environments'
-import { ImagesCard } from '@/routes/settings-images'
+import { ImageSourcesCard, ImagesCard } from '@/routes/settings-images'
 import type { PairRow } from '@/lib/pools'
 import {
   formatQuotaLimits,
@@ -534,6 +534,7 @@ export function SettingsPage() {
           <PriceSheetCard policy={query.data} />
           <QuotasCard policy={query.data} />
           <ImagesCard policy={query.data} />
+          <ImageSourcesCard policy={query.data} />
           <EnvironmentsCard policy={query.data} />
         </div>
       )}
